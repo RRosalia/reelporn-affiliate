@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -8,8 +8,9 @@ import RegistrationSuccessModal from '@/components/RegistrationSuccessModal';
 import SearchableSelect from '@/components/SearchableSelect';
 import { countryService } from '@/lib/services/CountryService';
 import { Country } from '@/lib/types/country';
+import { gtmTrackLead } from '@/lib/gtm';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -56,6 +57,14 @@ export default function RegisterPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+
+    // Track lead event in GTM
+    gtmTrackLead({
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      country_id: country,
+    });
 
     setLoading(true);
 
@@ -191,7 +200,8 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-3 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
             >
               {loading ? 'Creating account...' : 'Continue'}
             </button>
@@ -216,5 +226,17 @@ export default function RegisterPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <div className="text-zinc-600">Loading...</div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

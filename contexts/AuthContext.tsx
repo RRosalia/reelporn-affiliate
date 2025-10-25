@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
+import { reinitializeEchoWithAuth, disconnectEcho } from '@/lib/echo-config';
 
 interface User {
   id: number;
@@ -35,6 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
+      // Initialize Echo with auth token
+      reinitializeEchoWithAuth(token);
     }
     setLoading(false);
   }, []);
@@ -52,6 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user', JSON.stringify(user));
 
       setUser(user);
+
+      // Initialize Echo with auth token
+      reinitializeEchoWithAuth(token);
+
       router.push('/dashboard');
     } catch (error) {
       throw error;
@@ -73,6 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user', JSON.stringify(user));
 
       setUser(user);
+
+      // Initialize Echo with auth token
+      reinitializeEchoWithAuth(token);
+
       router.push('/dashboard');
     } catch (error) {
       throw error;
@@ -83,6 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+
+    // Disconnect Echo
+    disconnectEcho();
+
     router.push('/login');
   };
 
