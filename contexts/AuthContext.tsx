@@ -21,6 +21,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   register: (firstName: string, lastName: string, email: string, country: string | number) => Promise<void>;
   logout: () => void;
+  fetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,8 +102,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
+  const fetchProfile = async () => {
+    try {
+      const response = await axiosInstance.get('/account/profile');
+      const profileData = response.data.data;
+
+      // Update user with profile data
+      const updatedUser = { ...user, ...profileData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

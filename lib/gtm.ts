@@ -55,3 +55,19 @@ export const gtmTrackPageView = (pagePath: string, pageTitle?: string) => {
     page_title: pageTitle,
   });
 };
+
+/**
+ * Track registration completion
+ */
+export const gtmTrackRegistrationCompleted = (data?: {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  [key: string]: any;
+}) => {
+  gtmPushEvent('registration_completed', {
+    event_category: 'engagement',
+    event_label: 'registration_completed',
+    ...data,
+  });
+};

@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, FormEvent, useEffect, Suspense } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import RegistrationSuccessModal from '@/components/RegistrationSuccessModal';
 import SearchableSelect from '@/components/SearchableSelect';
 import { countryService } from '@/lib/services/CountryService';
 import { Country } from '@/lib/types/country';
-import { gtmTrackLead } from '@/lib/gtm';
+import { gtmTrackLead, gtmTrackRegistrationCompleted } from '@/lib/gtm';
 
 function RegisterForm() {
   const [firstName, setFirstName] = useState('');
@@ -19,12 +18,9 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingCountries, setLoadingCountries] = useState(true);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const { register } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   // Fetch countries from API using service
   useEffect(() => {
@@ -43,17 +39,6 @@ function RegisterForm() {
     fetchCountries();
   }, []);
 
-  // Check for registration success query parameter
-  useEffect(() => {
-    const isSuccess = searchParams.get('registration-success');
-    const emailParam = searchParams.get('email');
-
-    if (isSuccess === 'true' && emailParam) {
-      setRegisteredEmail(emailParam);
-      setShowSuccessModal(true);
-    }
-  }, [searchParams]);
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -70,19 +55,21 @@ function RegisterForm() {
 
     try {
       await register(firstName, lastName, email, country);
-      // Redirect with success parameter
-      router.push(`/register?registration-success=true&email=${encodeURIComponent(email)}`);
+
+      // Track registration completion in GTM
+      gtmTrackRegistrationCompleted({
+        email,
+        first_name: firstName,
+        last_name: lastName,
+      });
+
+      // Redirect to dashboard with success parameter
+      router.push('/dashboard?registration_success=true');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCloseModal = () => {
-    setShowSuccessModal(false);
-    // Clean up URL
-    router.push('/register');
   };
 
   return (
@@ -217,26 +204,10 @@ function RegisterForm() {
           </form>
         </div>
       </div>
-
-      {/* Registration Success Modal */}
-      {showSuccessModal && (
-        <RegistrationSuccessModal
-          username={registeredEmail}
-          onClose={handleCloseModal}
-        />
-      )}
     </div>
   );
 }
 
 export default function RegisterPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <div className="text-zinc-600">Loading...</div>
-      </div>
-    }>
-      <RegisterForm />
-    </Suspense>
-  );
+  return <RegisterForm />;
 }

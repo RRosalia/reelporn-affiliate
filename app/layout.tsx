@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import GoogleTagManager from "@/components/GoogleTagManager";
 import EchoProvider from "@/components/EchoProvider";
+import MainLayout from "@/components/MainLayout";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -33,7 +34,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <EchoProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <MainLayout>{children}</MainLayout>
+          </AuthProvider>
         </EchoProvider>
       </body>
       {gtmId && <GoogleTagManager gtmId={gtmId} />}

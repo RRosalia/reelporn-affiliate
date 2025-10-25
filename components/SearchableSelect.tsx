@@ -96,16 +96,24 @@ export default function SearchableSelect({
     }
   };
 
-  const handleSelect = (optionValue: string | number) => {
+  const handleSelect = (e: React.MouseEvent, optionValue: string | number) => {
+    e.preventDefault();
+    e.stopPropagation();
     onChange(optionValue);
     setIsOpen(false);
     setSearchQuery('');
     inputRef.current?.blur();
   };
 
-  const handleInputClick = () => {
+  const handleInputClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!disabled) {
       setIsOpen(!isOpen);
+      // Focus the input when opening
+      if (!isOpen) {
+        inputRef.current?.focus();
+      }
     }
   };
 
@@ -124,7 +132,7 @@ export default function SearchableSelect({
         className={`w-full px-4 py-2.5 border border-zinc-300 rounded-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-pink-500 focus-within:border-transparent bg-white flex items-center gap-2 cursor-pointer ${
           disabled ? 'opacity-50 cursor-not-allowed bg-zinc-50' : ''
         }`}
-        onClick={handleInputClick}
+        onMouseDown={handleInputClick}
       >
         {selectedOption && selectedOption.emoji && (
           <span className="text-lg">{selectedOption.emoji}</span>
@@ -172,7 +180,7 @@ export default function SearchableSelect({
             filteredOptions.map((option, index) => (
               <div
                 key={option.value}
-                onClick={() => handleSelect(option.value)}
+                onMouseDown={(e) => handleSelect(e, option.value)}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={`px-4 py-2.5 cursor-pointer flex items-center gap-2 ${
                   index === highlightedIndex
