@@ -23,6 +23,22 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Check for 2FA missing error
+    if (
+      error.response?.status === 400 &&
+      error.response?.headers?.['x-authentication-error'] === '2fa-missing'
+    ) {
+      // Set flag in localStorage to show 2FA screen
+      localStorage.setItem('require_2fa', 'true');
+
+      // Only redirect if not already on login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login?require2fa=true';
+      }
+
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';

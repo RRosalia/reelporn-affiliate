@@ -1,9 +1,35 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const [companyName, setCompanyName] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSaveMessage('');
+
+    try {
+      // TODO: Implement API call to save settings
+      // await updateAccountSettings({ company_name: companyName, notification_email: notificationEmail });
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      setSaveMessage('Settings saved successfully!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      setSaveMessage('Failed to save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -11,31 +37,7 @@ export default function SettingsPage() {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="text-lg font-semibold text-zinc-900 mb-6">Account Information</h2>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
-              Username
-            </label>
-            <input
-              type="text"
-              value={user?.username || ''}
-              disabled
-              className="w-full px-4 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-600 cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={user?.email || ''}
-              disabled
-              className="w-full px-4 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-600 cursor-not-allowed"
-            />
-          </div>
-
+        <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-2">
               Affiliate ID
@@ -50,7 +52,71 @@ export default function SettingsPage() {
               Your unique affiliate identifier
             </p>
           </div>
-        </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
+              Company Name
+            </label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Enter your company name"
+              className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={notificationEmail}
+              onChange={(e) => setNotificationEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+            <p className="mt-2 text-xs text-zinc-500">
+              This email is only used for notifications
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">
+              Country / Region
+            </label>
+            <input
+              type="text"
+              value="United States"
+              disabled
+              className="w-full px-4 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-600 cursor-not-allowed"
+            />
+            <p className="mt-2 text-xs text-zinc-500">
+              Country cannot be changed at this time
+            </p>
+          </div>
+
+          {saveMessage && (
+            <div className={`p-3 rounded-lg text-sm ${
+              saveMessage.includes('success')
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}>
+              {saveMessage}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Account Status */}

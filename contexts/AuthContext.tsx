@@ -60,7 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Initialize Echo with auth token
       reinitializeEchoWithAuth(token);
 
-      router.push('/dashboard');
+      // Don't redirect here - let the login page handle it after checking for 2FA
+      // router.push('/dashboard');
     } catch (error) {
       throw error;
     }

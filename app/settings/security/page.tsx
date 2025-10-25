@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TwoFactorService from '@/lib/services/TwoFactorService';
+import axiosInstance from '@/lib/axios';
 
 export default function SecurityPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -9,33 +11,237 @@ export default function SecurityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Profile state
+  const [hasPassword, setHasPassword] = useState(true);
+
+  // 2FA state
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isEnabling2FA, setIsEnabling2FA] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [twoFAMessage, setTwoFAMessage] = useState('');
+
+  // Disable 2FA state
+  const [showDisableModal, setShowDisableModal] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const [isDisabling, setIsDisabling] = useState(false);
+
+  // View recovery codes state
+  const [showViewCodesModal, setShowViewCodesModal] = useState(false);
+  const [viewCodesOTP, setViewCodesOTP] = useState('');
+  const [isLoadingCodes, setIsLoadingCodes] = useState(false);
+
+  // Regenerate recovery codes state
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [regenerateOTP, setRegenerateOTP] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const response = await axiosInstance.get('/account/profile');
+      const twoFactorEnabled = response.data.data.two_factor_enabled || false;
+      const hasPasswordSet = response.data.data.has_password !== false;
+      setIs2FAEnabled(twoFactorEnabled);
+      setHasPassword(hasPasswordSet);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setMessage('');
 
-    if (newPassword !== confirmPassword) {
-      setMessage('New passwords do not match');
-      setIsSaving(false);
-      return;
-    }
-
     try {
       // TODO: Implement API call to change password
-      // await changePassword(currentPassword, newPassword);
+      const payload = hasPassword
+        ? { current_password: currentPassword, new_password: newPassword, new_password_confirmation: confirmPassword }
+        : { new_password: newPassword, new_password_confirmation: confirmPassword };
+      // await changePassword(payload);
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      setMessage('Password changed successfully!');
+      const successMessage = hasPassword ? 'Password changed successfully!' : 'Password set successfully!';
+      setMessage(successMessage);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+
+      // Update hasPassword state after setting password
+      if (!hasPassword) {
+        setHasPassword(true);
+      }
+
       setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setMessage('Failed to change password. Please try again.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to change password. Please try again.';
+      setMessage(errorMessage);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEnable2FA = async () => {
+    setIsEnabling2FA(true);
+    setTwoFAMessage('');
+
+    try {
+      const response = await TwoFactorService.enableTwoFactor();
+      setQrCode(response.data.svg);
+      setSecret(response.data.secret);
+      setShow2FASetup(true);
+    } catch (error: any) {
+      setTwoFAMessage(error.message || 'Failed to initialize 2FA setup. Please try again.');
+    } finally {
+      setIsEnabling2FA(false);
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    setTwoFAMessage('');
+
+    try {
+      await TwoFactorService.confirmTwoFactor(verificationCode);
+
+      setIs2FAEnabled(true);
+      setShow2FASetup(false);
+      setVerificationCode('');
+      setRecoveryCodes([]); // Clear any codes from setup
+      setTwoFAMessage('Two-factor authentication enabled successfully!');
+      setTimeout(() => setTwoFAMessage(''), 3000);
+    } catch (error: any) {
+      setTwoFAMessage(error.message || 'Invalid verification code. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const openDisableModal = () => {
+    setShowDisableModal(true);
+    setDisableCode('');
+    setTwoFAMessage('');
+  };
+
+  const closeDisableModal = () => {
+    setShowDisableModal(false);
+    setDisableCode('');
+  };
+
+  const handleDisable2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsDisabling(true);
+    setTwoFAMessage('');
+
+    try {
+      await TwoFactorService.disableTwoFactor(disableCode);
+      setIs2FAEnabled(false);
+      setShowDisableModal(false);
+      setDisableCode('');
+      setTwoFAMessage('Two-factor authentication disabled.');
+      setTimeout(() => setTwoFAMessage(''), 3000);
+    } catch (error: any) {
+      setTwoFAMessage(error.message || 'Failed to disable 2FA. Please try again.');
+    } finally {
+      setIsDisabling(false);
+    }
+  };
+
+  const downloadRecoveryCodes = () => {
+    const text = recoveryCodes.join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'recovery-codes.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyRecoveryCodes = () => {
+    navigator.clipboard.writeText(recoveryCodes.join('\n'));
+    setTwoFAMessage('Recovery codes copied to clipboard!');
+    setTimeout(() => setTwoFAMessage(''), 3000);
+  };
+
+  const openViewCodesModal = () => {
+    setShowViewCodesModal(true);
+    setViewCodesOTP('');
+    setTwoFAMessage('');
+  };
+
+  const closeViewCodesModal = () => {
+    setShowViewCodesModal(false);
+    setViewCodesOTP('');
+  };
+
+  const handleLoadRecoveryCodes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoadingCodes(true);
+    setTwoFAMessage('');
+
+    try {
+      const codes = await TwoFactorService.getRecoveryCodes(viewCodesOTP);
+      console.log('Recovery codes manually loaded:', codes);
+      setRecoveryCodes(codes);
+      setShowViewCodesModal(false);
+      setViewCodesOTP('');
+      setTwoFAMessage('Recovery codes loaded successfully!');
+      setTimeout(() => setTwoFAMessage(''), 3000);
+    } catch (error: any) {
+      console.error('Error loading recovery codes:', error);
+      setTwoFAMessage(error.message || 'Failed to load recovery codes.');
+    } finally {
+      setIsLoadingCodes(false);
+    }
+  };
+
+  const openRegenerateModal = () => {
+    setShowRegenerateModal(true);
+    setRegenerateOTP('');
+    setTwoFAMessage('');
+  };
+
+  const closeRegenerateModal = () => {
+    setShowRegenerateModal(false);
+    setRegenerateOTP('');
+  };
+
+  const handleRegenerateRecoveryCodes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsRegenerating(true);
+    setTwoFAMessage('');
+
+    try {
+      const codes = await TwoFactorService.regenerateRecoveryCodes(regenerateOTP);
+      console.log('Recovery codes regenerated:', codes);
+      setRecoveryCodes(codes);
+      setShowRegenerateModal(false);
+      setRegenerateOTP('');
+      setTwoFAMessage('Recovery codes regenerated successfully! Your old codes no longer work.');
+      setTimeout(() => setTwoFAMessage(''), 5000);
+    } catch (error: any) {
+      console.error('Error regenerating recovery codes:', error);
+      setTwoFAMessage(error.message || 'Failed to regenerate recovery codes.');
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -43,29 +249,44 @@ export default function SecurityPage() {
     <div className="space-y-6">
       {/* Change Password */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-2">Change Password</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-2">
+          {hasPassword ? 'Change Password' : 'Set Password'}
+        </h2>
         <p className="text-sm text-zinc-600 mb-6">
-          Update your password to keep your account secure
+          {hasPassword
+            ? 'Update your password to keep your account secure'
+            : 'Your account currently has no password. Set one now to secure your account.'}
         </p>
 
-        <form onSubmit={handleChangePassword} className="space-y-4">
-          <div>
-            <label htmlFor="currentPassword" className="block text-sm font-medium text-zinc-700 mb-2">
-              Current Password
-            </label>
-            <input
-              type="password"
-              id="currentPassword"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-              required
-            />
+        {!hasPassword && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              <span className="font-medium">No password set</span><br />
+              You can set a password now to add an extra layer of security to your account.
+            </p>
           </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          {hasPassword && (
+            <div>
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-zinc-700 mb-2">
+                Current Password
+              </label>
+              <input
+                type="password"
+                id="currentPassword"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                required
+              />
+            </div>
+          )}
 
           <div>
             <label htmlFor="newPassword" className="block text-sm font-medium text-zinc-700 mb-2">
-              New Password
+              {hasPassword ? 'New Password' : 'Password'}
             </label>
             <input
               type="password"
@@ -75,14 +296,11 @@ export default function SecurityPage() {
               className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
               required
             />
-            <p className="mt-2 text-xs text-zinc-500">
-              Password must be at least 8 characters long
-            </p>
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-700 mb-2">
-              Confirm New Password
+              {hasPassword ? 'Confirm New Password' : 'Confirm Password'}
             </label>
             <input
               type="password"
@@ -107,10 +325,10 @@ export default function SecurityPage() {
           <div className="pt-4">
             <button
               type="submit"
-              disabled={isSaving || !currentPassword || !newPassword || !confirmPassword}
+              disabled={isSaving || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
               className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
             >
-              {isSaving ? 'Updating...' : 'Update Password'}
+              {isSaving ? 'Saving...' : hasPassword ? 'Update Password' : 'Set Password'}
             </button>
           </div>
         </form>
@@ -118,67 +336,316 @@ export default function SecurityPage() {
 
       {/* Two-Factor Authentication */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-2">Two-Factor Authentication</h2>
-        <p className="text-sm text-zinc-600 mb-6">
-          Add an extra layer of security to your account
-        </p>
-
-        <div className="flex items-center justify-between py-3">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="font-medium text-zinc-900">Status</p>
-            <p className="text-sm text-zinc-500">Two-factor authentication is currently disabled</p>
+            <h2 className="text-lg font-semibold text-zinc-900">Two-Factor Authentication</h2>
+            <p className="text-sm text-zinc-600 mt-1">
+              Add an extra layer of security to your account
+            </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-zinc-100 text-zinc-600">
-            Disabled
-          </span>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-zinc-200">
-          <button
-            type="button"
-            className="px-6 py-2 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-lg transition-colors"
-          >
-            Enable 2FA
-          </button>
-        </div>
-      </div>
-
-      {/* Active Sessions */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-2">Active Sessions</h2>
-        <p className="text-sm text-zinc-600 mb-6">
-          Manage your active sessions across different devices
-        </p>
-
-        <div className="space-y-4">
-          <div className="flex items-start justify-between py-3 border-b border-zinc-100">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-zinc-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-zinc-900">Current Session</p>
-                <p className="text-sm text-zinc-500">macOS - Chrome</p>
-                <p className="text-xs text-zinc-400 mt-1">Last active: Just now</p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-              Active
+          {isLoadingProfile ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-zinc-100 text-zinc-700 border border-zinc-300">
+              Loading...
             </span>
-          </div>
+          ) : is2FAEnabled ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700 border border-green-200">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Enabled
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-zinc-100 text-zinc-700 border border-zinc-300">
+              Disabled
+            </span>
+          )}
         </div>
 
-        <div className="mt-6 pt-6 border-t border-zinc-200">
-          <button
-            type="button"
-            className="text-sm text-red-600 hover:text-red-700 font-medium"
-          >
-            Sign out all other sessions
-          </button>
-        </div>
+        {twoFAMessage && (
+          <div className={`mb-4 p-3 rounded-lg text-sm ${
+            twoFAMessage.includes('success') || twoFAMessage.includes('enabled')
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {twoFAMessage}
+          </div>
+        )}
+
+        {isLoadingProfile ? (
+          <div className="text-center py-8 text-zinc-500">Loading 2FA status...</div>
+        ) : !is2FAEnabled && !show2FASetup ? (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <span className="font-medium">What is 2FA?</span><br />
+                Two-factor authentication adds an extra layer of security by requiring a code from your phone
+                in addition to your password when logging in.
+              </p>
+            </div>
+
+            <button
+              onClick={handleEnable2FA}
+              disabled={isEnabling2FA}
+              className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+            >
+              {isEnabling2FA ? 'Setting up...' : 'Enable 2FA'}
+            </button>
+          </div>
+        ) : show2FASetup ? (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800 font-medium mb-3">
+                Step 1: Scan the QR code with your authenticator app
+              </p>
+              <div className="bg-white p-4 rounded-lg inline-block" dangerouslySetInnerHTML={{ __html: qrCode }} />
+              <p className="text-xs text-blue-700 mt-3">
+                Can't scan? Enter this code manually: <code className="font-mono bg-white px-2 py-1 rounded">{secret}</code>
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800 font-medium mb-3">
+                Step 2: Enter the 6-digit code from your authenticator app
+              </p>
+              <form onSubmit={handleVerify2FA} className="space-y-3">
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder="000000"
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                  required
+                  className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                />
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShow2FASetup(false)}
+                    className="px-4 py-2 border border-zinc-300 rounded-lg text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isVerifying}
+                    className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                  >
+                    {isVerifying ? 'Verifying...' : 'Verify and Enable'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : is2FAEnabled ? (
+          <div className="space-y-4">
+            {recoveryCodes && recoveryCodes.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800 font-medium mb-3">
+                  Recovery Codes
+                </p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Save these recovery codes in a safe place. You can use them to access your account if you lose your authenticator device.
+                </p>
+                <div className="bg-white p-3 rounded-lg mb-3">
+                  <div className="grid grid-cols-2 gap-2 font-mono text-sm">
+                    {recoveryCodes.map((code, index) => (
+                      <div key={index} className="text-zinc-700">{code}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={downloadRecoveryCodes}
+                    className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+                  >
+                    Download
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyRecoveryCodes}
+                    className="px-3 py-1.5 text-sm border border-amber-300 text-amber-800 hover:bg-amber-100 rounded-lg transition-colors"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openRegenerateModal}
+                    className="px-3 py-1.5 text-sm border border-red-300 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    Rotate Codes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              {(!recoveryCodes || recoveryCodes.length === 0) && (
+                <button
+                  type="button"
+                  onClick={openViewCodesModal}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Show Recovery Codes
+                </button>
+              )}
+              <button
+                onClick={openDisableModal}
+                className="px-6 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition-colors"
+              >
+                Disable 2FA
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
+
+      {/* Disable 2FA Modal */}
+      {showDisableModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-zinc-900 mb-2">Disable Two-Factor Authentication</h2>
+            <p className="text-zinc-600 mb-4">
+              Enter the 6-digit code from your authenticator app to disable 2FA.
+            </p>
+
+            <form onSubmit={handleDisable2FA}>
+              <input
+                type="text"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value)}
+                placeholder="000000"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                required
+                className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent mb-4"
+              />
+
+              {twoFAMessage && twoFAMessage.includes('invalid') && (
+                <div className="mb-4 p-3 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200">
+                  {twoFAMessage}
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={closeDisableModal}
+                  className="px-4 py-2 border border-zinc-300 rounded-lg text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDisabling}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                >
+                  {isDisabling ? 'Disabling...' : 'Disable 2FA'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Recovery Codes Modal */}
+      {showViewCodesModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-zinc-900 mb-2">View Recovery Codes</h2>
+            <p className="text-zinc-600 mb-4">
+              Enter the 6-digit code from your authenticator app to view your recovery codes.
+            </p>
+
+            <form onSubmit={handleLoadRecoveryCodes}>
+              <input
+                type="text"
+                value={viewCodesOTP}
+                onChange={(e) => setViewCodesOTP(e.target.value)}
+                placeholder="000000"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                required
+                autoFocus
+                className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent mb-4"
+              />
+
+              {twoFAMessage && (twoFAMessage.includes('Failed') || twoFAMessage.includes('Invalid') || twoFAMessage.includes('invalid')) && showViewCodesModal && (
+                <div className="mb-4 p-3 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200">
+                  {twoFAMessage}
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={closeViewCodesModal}
+                  className="px-4 py-2 border border-zinc-300 rounded-lg text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoadingCodes}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                >
+                  {isLoadingCodes ? 'Loading...' : 'View Codes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Regenerate Recovery Codes Modal */}
+      {showRegenerateModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-zinc-900 mb-2">Rotate Recovery Codes</h2>
+            <p className="text-zinc-600 mb-4">
+              Enter the 6-digit code from your authenticator app to generate new recovery codes. <strong>Your old codes will no longer work.</strong>
+            </p>
+
+            <form onSubmit={handleRegenerateRecoveryCodes}>
+              <input
+                type="text"
+                value={regenerateOTP}
+                onChange={(e) => setRegenerateOTP(e.target.value)}
+                placeholder="000000"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                required
+                autoFocus
+                className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent mb-4"
+              />
+
+              {twoFAMessage && (twoFAMessage.includes('Failed') || twoFAMessage.includes('Invalid') || twoFAMessage.includes('invalid')) && showRegenerateModal && (
+                <div className="mb-4 p-3 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200">
+                  {twoFAMessage}
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={closeRegenerateModal}
+                  className="px-4 py-2 border border-zinc-300 rounded-lg text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRegenerating}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                >
+                  {isRegenerating ? 'Rotating...' : 'Rotate Codes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
