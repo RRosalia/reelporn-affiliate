@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@laravel/echo-react": "^2.2.4",
     "axios": "^1.7.9",
     "laravel-echo": "^2.2.4",
     "next": "16.0.0-beta.0",
