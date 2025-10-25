@@ -1,0 +1,86 @@
+{
+  "common": {
+    "siteName": "reelporn.com",
+    "loading": "Loading..."
+  },
+  "register": {
+    "title": "Complete your account",
+    "subtitle": "Please fill out the form to complete your account.",
+    "branding": {
+      "welcome": "Welcome to",
+      "affiliateProgram": "reelporn.com's Affiliate Program",
+      "tagline": "Earn 40% on all paid customers."
+    },
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "username": "Username",
+      "email": "Email",
+      "country": "Country / Region",
+      "payoutMethod": "Payout method",
+      "payoutMethodHint": "How would you like to receive payments?",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "placeholders": {
+      "firstName": "e.g. John",
+      "lastName": "e.g. Doe",
+      "username": "Choose a username",
+      "email": "your.email@example.com",
+      "selectCountry": "Select a country",
+      "selectPayoutMethod": "Select a payout method",
+      "password": "Choose a strong password",
+      "confirmPassword": "Confirm your password"
+    },
+    "payoutMethods": {
+      "paypal": "PayPal",
+      "bankTransfer": "Bank Transfer",
+      "stripe": "Stripe",
+      "cryptocurrency": "Cryptocurrency"
+    },
+    "countries": {
+      "netherlands": "Netherlands",
+      "belgium": "Belgium",
+      "germany": "Germany",
+      "france": "France",
+      "uk": "United Kingdom",
+      "us": "United States",
+      "other": "Other"
+    },
+    "buttons": {
+      "continue": "Continue",
+      "creating": "Creating account..."
+    },
+    "links": {
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in here"
+    },
+    "errors": {
+      "passwordMismatch": "Passwords do not match",
+      "registrationFailed": "Registration failed"
+    }
+  },
+  "login": {
+    "title": "Affiliate Panel",
+    "subtitle": "Sign in to your account",
+    "fields": {
+      "username": "Username",
+      "password": "Password"
+    },
+    "placeholders": {
+      "username": "Enter your username",
+      "password": "Enter your password"
+    },
+    "buttons": {
+      "signIn": "Sign in",
+      "signingIn": "Signing in..."
+    },
+    "links": {
+      "noAccount": "Don't have an account?",
+      "register": "Register here"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid credentials"
+    }
+  }
+}

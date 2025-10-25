@@ -1,0 +1,86 @@
+{
+  "common": {
+    "siteName": "reelporn.com",
+    "loading": "Laden..."
+  },
+  "register": {
+    "title": "Voltooi je account",
+    "subtitle": "Vul het formulier in om je account te voltooien.",
+    "branding": {
+      "welcome": "Welkom bij",
+      "affiliateProgram": "reelporn.com's Affiliateprogramma",
+      "tagline": "Verdien 40% op alle betalende klanten."
+    },
+    "fields": {
+      "firstName": "Voornaam",
+      "lastName": "Achternaam",
+      "username": "Gebruikersnaam",
+      "email": "E-mail",
+      "country": "Land / Regio",
+      "payoutMethod": "Uitbetalingsmethode",
+      "payoutMethodHint": "Hoe wil je betalingen ontvangen?",
+      "password": "Wachtwoord",
+      "confirmPassword": "Bevestig wachtwoord"
+    },
+    "placeholders": {
+      "firstName": "bijv. Jan",
+      "lastName": "bijv. de Vries",
+      "username": "Kies een gebruikersnaam",
+      "email": "jouw.email@voorbeeld.nl",
+      "selectCountry": "Selecteer een land",
+      "selectPayoutMethod": "Selecteer een uitbetalingsmethode",
+      "password": "Kies een sterk wachtwoord",
+      "confirmPassword": "Bevestig je wachtwoord"
+    },
+    "payoutMethods": {
+      "paypal": "PayPal",
+      "bankTransfer": "Bankoverschrijving",
+      "stripe": "Stripe",
+      "cryptocurrency": "Cryptocurrency"
+    },
+    "countries": {
+      "netherlands": "Nederland",
+      "belgium": "België",
+      "germany": "Duitsland",
+      "france": "Frankrijk",
+      "uk": "Verenigd Koninkrijk",
+      "us": "Verenigde Staten",
+      "other": "Andere"
+    },
+    "buttons": {
+      "continue": "Doorgaan",
+      "creating": "Account aanmaken..."
+    },
+    "links": {
+      "hasAccount": "Heb je al een account?",
+      "signIn": "Meld je hier aan"
+    },
+    "errors": {
+      "passwordMismatch": "Wachtwoorden komen niet overeen",
+      "registrationFailed": "Registratie mislukt"
+    }
+  },
+  "login": {
+    "title": "Affiliatepaneel",
+    "subtitle": "Meld je aan bij je account",
+    "fields": {
+      "username": "Gebruikersnaam",
+      "password": "Wachtwoord"
+    },
+    "placeholders": {
+      "username": "Voer je gebruikersnaam in",
+      "password": "Voer je wachtwoord in"
+    },
+    "buttons": {
+      "signIn": "Aanmelden",
+      "signingIn": "Aanmelden..."
+    },
+    "links": {
+      "noAccount": "Heb je geen account?",
+      "register": "Registreer hier"
+    },
+    "errors": {
+      "invalidCredentials": "Ongeldige inloggegevens"
+    }
+  }
+}
