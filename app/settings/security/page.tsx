@@ -2,14 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import TwoFactorService from '@/lib/services/TwoFactorService';
+import PasswordService from '@/lib/services/PasswordService';
 import axiosInstance from '@/lib/axios';
 
 export default function SecurityPage() {
+  // Password change state
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Email change state
+  const [currentEmail, setCurrentEmail] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [emailChangePassword, setEmailChangePassword] = useState('');
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
 
   // Profile state
   const [hasPassword, setHasPassword] = useState(true);
@@ -49,14 +59,37 @@ export default function SecurityPage() {
     try {
       setIsLoadingProfile(true);
       const response = await axiosInstance.get('/account/profile');
+      const user = response.data.data.user || response.data.data;
       const twoFactorEnabled = response.data.data.two_factor_enabled || false;
       const hasPasswordSet = response.data.data.has_password !== false;
       setIs2FAEnabled(twoFactorEnabled);
       setHasPassword(hasPasswordSet);
+      setCurrentEmail(user.email || '');
     } catch (error) {
       console.error('Failed to fetch profile:', error);
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsChangingEmail(true);
+    setEmailMessage('');
+
+    try {
+      await axiosInstance.post('/account/email/change', {
+        email: newEmail,
+        password: emailChangePassword,
+      });
+
+      setEmailMessage('A confirmation email has been sent to your new email address. Please check your inbox and click the confirmation link.');
+      setNewEmail('');
+      setEmailChangePassword('');
+    } catch (error: any) {
+      setEmailMessage(error.response?.data?.message || 'Failed to request email change. Please try again.');
+    } finally {
+      setIsChangingEmail(false);
     }
   };
 
@@ -66,14 +99,11 @@ export default function SecurityPage() {
     setMessage('');
 
     try {
-      // TODO: Implement API call to change password
       const payload = hasPassword
-        ? { current_password: currentPassword, new_password: newPassword, new_password_confirmation: confirmPassword }
-        : { new_password: newPassword, new_password_confirmation: confirmPassword };
-      // await changePassword(payload);
+        ? { current_password: currentPassword, password: newPassword, password_confirmation: confirmPassword }
+        : { password: newPassword, password_confirmation: confirmPassword };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await PasswordService.updatePassword(payload);
 
       const successMessage = hasPassword ? 'Password changed successfully!' : 'Password set successfully!';
       setMessage(successMessage);
@@ -88,8 +118,7 @@ export default function SecurityPage() {
 
       setTimeout(() => setMessage(''), 3000);
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to change password. Please try again.';
-      setMessage(errorMessage);
+      setMessage(error.message || 'Failed to change password. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -247,27 +276,121 @@ export default function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      {/* Change Password */}
+      {/* Change Email */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-2">
-          {hasPassword ? 'Change Password' : 'Set Password'}
-        </h2>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-2">Login Email</h2>
         <p className="text-sm text-zinc-600 mb-6">
-          {hasPassword
-            ? 'Update your password to keep your account secure'
-            : 'Your account currently has no password. Set one now to secure your account.'}
+          Update your login email address
         </p>
 
-        {!hasPassword && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <span className="font-medium">No password set</span><br />
-              You can set a password now to add an extra layer of security to your account.
-            </p>
+        {emailMessage && (
+          <div className={`mb-4 p-3 rounded-lg text-sm ${
+            emailMessage.includes('confirmation')
+              ? 'bg-blue-50 text-blue-800 border border-blue-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {emailMessage}
           </div>
         )}
 
-        <form onSubmit={handleChangePassword} className="space-y-4">
+        <form onSubmit={handleChangeEmail} className="space-y-4">
+          <div>
+            <label htmlFor="currentEmail" className="block text-sm font-medium text-zinc-700 mb-2">
+              Current Email
+            </label>
+            <input
+              type="email"
+              id="currentEmail"
+              value={currentEmail}
+              disabled
+              className="w-full px-4 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-600 cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="newEmail" className="block text-sm font-medium text-zinc-700 mb-2">
+              New Email
+            </label>
+            <input
+              type="email"
+              id="newEmail"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="Enter new email address"
+              className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="emailChangePassword" className="block text-sm font-medium text-zinc-700 mb-2">
+              Current Password
+            </label>
+            <input
+              type="password"
+              id="emailChangePassword"
+              value={emailChangePassword}
+              onChange={(e) => setEmailChangePassword(e.target.value)}
+              placeholder="Enter your password to confirm"
+              className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              required
+            />
+            <p className="mt-2 text-xs text-zinc-500">
+              For security, you must enter your password to change your email
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isChangingEmail || !newEmail || !emailChangePassword}
+              className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+            >
+              {isChangingEmail ? 'Sending...' : 'Change Email'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Change Password */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <button
+          type="button"
+          onClick={() => setShowPasswordChange(!showPasswordChange)}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="text-left">
+            <h2 className="text-lg font-semibold text-zinc-900">
+              {hasPassword ? 'Change Password' : 'Set Password'}
+            </h2>
+            <p className="text-sm text-zinc-600 mt-1">
+              {hasPassword
+                ? 'Update your password to keep your account secure'
+                : 'Set a password to secure your account'}
+            </p>
+          </div>
+          <svg
+            className={`w-5 h-5 text-zinc-400 transition-transform ${showPasswordChange ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showPasswordChange && (
+          <>
+            {!hasPassword && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">No password set</span><br />
+                  You can set a password now to add an extra layer of security to your account.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-4 mt-6">
           {hasPassword && (
             <div>
               <label htmlFor="currentPassword" className="block text-sm font-medium text-zinc-700 mb-2">
@@ -322,16 +445,18 @@ export default function SecurityPage() {
             </div>
           )}
 
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={isSaving || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
-              className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
-            >
-              {isSaving ? 'Saving...' : hasPassword ? 'Update Password' : 'Set Password'}
-            </button>
-          </div>
-        </form>
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={isSaving || (hasPassword && !currentPassword) || !newPassword || !confirmPassword}
+                  className="px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? 'Saving...' : hasPassword ? 'Update Password' : 'Set Password'}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
 
       {/* Two-Factor Authentication */}

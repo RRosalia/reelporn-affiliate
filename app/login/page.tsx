@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { setUserData } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -37,29 +37,39 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    // Clear any old tokens before attempting login to prevent flash
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('temp_token');
+    sessionStorage.removeItem('temp_user');
+
     try {
-      await login(email, password);
+      // Use the regular axios instance now that backend is fixed
+      const response = await axiosInstance.post('/login', {
+        email,
+        password,
+      });
 
-      // After successful login, check if 2FA is required
-      const verifyResponse = await axiosInstance.get('/auth/verify-2fa');
-      const { two_factor_required } = verifyResponse.data.data;
+      const { token, user } = response.data.data;
 
-      if (two_factor_required) {
+      // Check if user has 2FA enabled by looking at the user object
+      const has2FAEnabled = user.two_factor_confirmed_at !== null;
+
+      if (has2FAEnabled) {
+        // Store token temporarily in sessionStorage for 2FA verification
+        sessionStorage.setItem('temp_token', token);
+        sessionStorage.setItem('temp_user', JSON.stringify(user));
         setShow2FAScreen(true);
         setLoading(false);
       } else {
-        // No 2FA required, redirect to dashboard
+        // No 2FA enabled, directly set token and proceed
+        setUserData(token, user);
         router.push('/dashboard');
       }
     } catch (err: any) {
-      // Check for 2FA error header
-      if (err.response?.status === 400 && err.response?.headers?.['x-authentication-error'] === '2fa-missing') {
-        setShow2FAScreen(true);
-        setLoading(false);
-      } else {
-        setError(err.response?.data?.message || 'Invalid credentials');
-        setLoading(false);
-      }
+      // This is a login error (not 2FA related since we handle that above)
+      setError(err.response?.data?.message || 'Invalid credentials');
+      setLoading(false);
     }
   };
 
@@ -69,19 +79,41 @@ export default function LoginPage() {
     setIsVerifying2FA(true);
 
     try {
+      // Get temporary token from sessionStorage
+      const tempToken = sessionStorage.getItem('temp_token');
+      const tempUser = sessionStorage.getItem('temp_user');
+
+      if (!tempToken) {
+        setError('Session expired. Please login again.');
+        setShow2FAScreen(false);
+        return;
+      }
+
+      // Use regular axios instance now that backend is fixed
       const response = await axiosInstance.post('/auth/verify-2fa', {
         code: twoFACode,
+      }, {
+        headers: {
+          Authorization: `Bearer ${tempToken}`,
+        },
       });
 
       const { token } = response.data.data;
 
-      // Update token in localStorage
-      localStorage.setItem('token', token);
+      // Clear temporary storage
+      sessionStorage.removeItem('temp_token');
+      sessionStorage.removeItem('temp_user');
 
       // Fetch user profile with new token
-      const profileResponse = await axiosInstance.get('/account/profile');
+      const profileResponse = await axiosInstance.get('/account/profile', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const userData = profileResponse.data.data;
-      localStorage.setItem('user', JSON.stringify(userData));
+
+      // Now set the final token and user data
+      setUserData(token, userData);
 
       // Redirect to dashboard
       router.push('/dashboard');
@@ -93,6 +125,10 @@ export default function LoginPage() {
   };
 
   const handleBackToLogin = () => {
+    // Clear temporary session data
+    sessionStorage.removeItem('temp_token');
+    sessionStorage.removeItem('temp_user');
+
     // Clear any 2FA flags
     localStorage.removeItem('require_2fa');
 
@@ -102,6 +138,10 @@ export default function LoginPage() {
   };
 
   const handleLogout = () => {
+    // Clear temporary session data
+    sessionStorage.removeItem('temp_token');
+    sessionStorage.removeItem('temp_user');
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setShow2FAScreen(false);

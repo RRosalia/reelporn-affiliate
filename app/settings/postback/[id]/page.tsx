@@ -140,9 +140,9 @@ export default function PostbackDetailPage() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="p-8 space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
         <button
           onClick={() => router.push('/settings/postback')}
           className="text-zinc-600 hover:text-zinc-900 text-sm mb-4 flex items-center gap-2"

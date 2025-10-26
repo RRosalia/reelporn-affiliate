@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,12 +8,29 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function Sidebar() {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['Traffic']);
 
   const isActive = (path: string) => {
     if (path === '/settings') {
       return pathname.startsWith('/settings');
     }
     return pathname === path;
+  };
+
+  const isMenuExpanded = (menuName: string) => {
+    return expandedMenus.includes(menuName);
+  };
+
+  const toggleMenu = (menuName: string) => {
+    setExpandedMenus((prev) =>
+      prev.includes(menuName)
+        ? prev.filter((name) => name !== menuName)
+        : [...prev, menuName]
+    );
+  };
+
+  const isTrafficActive = () => {
+    return pathname.startsWith('/traffic');
   };
 
   const menuItems = [
@@ -26,13 +44,26 @@ export default function Sidebar() {
       ),
     },
     {
-      name: 'Referrals',
-      path: '/referrals',
+      name: 'Traffic',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ),
+      submenu: [
+        {
+          name: 'Clicks',
+          path: '/traffic/clicks',
+        },
+        {
+          name: 'Customers',
+          path: '/traffic/customers',
+        },
+        {
+          name: 'Leads',
+          path: '/traffic/leads',
+        },
+      ],
     },
     {
       name: 'Link Builder',
@@ -66,23 +97,64 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-1">
         {menuItems.map((item) => (
-          <Link
-            key={item.path}
-            href={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              isActive(item.path)
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-            }`}
-          >
-            {item.icon}
-            <span className="font-medium">{item.name}</span>
-            {item.badge && (
-              <span className="ml-auto text-xs bg-pink-500 text-white px-2 py-0.5 rounded">
-                {item.badge}
-              </span>
+          <div key={item.name}>
+            {item.submenu ? (
+              /* Expandable Menu Item */
+              <div>
+                <button
+                  onClick={() => toggleMenu(item.name)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isTrafficActive()
+                      ? 'bg-zinc-800 text-white'
+                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                  }`}
+                >
+                  {item.icon}
+                  <span className="font-medium">{item.name}</span>
+                  <svg
+                    className={`w-4 h-4 ml-auto transition-transform ${
+                      isMenuExpanded(item.name) ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isMenuExpanded(item.name) && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {item.submenu.map((subItem) => (
+                      <Link
+                        key={subItem.path}
+                        href={subItem.path}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                          isActive(subItem.path)
+                            ? 'bg-zinc-800 text-white'
+                            : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                        }`}
+                      >
+                        <span className="font-medium">{subItem.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Regular Menu Item */
+              <Link
+                href={item.path!}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive(item.path!)
+                    ? 'bg-zinc-800 text-white'
+                    : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                }`}
+              >
+                {item.icon}
+                <span className="font-medium">{item.name}</span>
+              </Link>
             )}
-          </Link>
+          </div>
         ))}
       </nav>
 

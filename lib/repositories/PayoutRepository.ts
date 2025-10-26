@@ -17,12 +17,12 @@ export class PayoutRepository {
     return response.data.data;
   }
 
-  async setDefault(id: string): Promise<PayoutOption> {
-    const response = await axiosInstance.patch<PayoutResponse>(`/payouts/${id}/set-default`);
+  async setPrimary(id: number): Promise<PayoutOption> {
+    const response = await axiosInstance.patch<PayoutResponse>(`/payouts/${id}/set-primary`);
     return response.data.data;
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await axiosInstance.delete(`/payouts/${id}`);
   }
 }

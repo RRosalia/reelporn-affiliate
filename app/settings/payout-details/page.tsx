@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PayoutService from '@/lib/services/PayoutService';
-import { PayoutOption, PaymentMethod, WireTransferDetails, PaypalDetails, WiseDetails } from '@/lib/types/payout';
+import { PayoutOption, PaymentMethod, WireTransferFields, PaypalFields, WiseFields } from '@/lib/types/payout';
 
 export default function PayoutDetailsPage() {
   const [payouts, setPayouts] = useState<PayoutOption[]>([]);
@@ -30,9 +30,13 @@ export default function PayoutDetailsPage() {
   const [swiftCode, setSwiftCode] = useState('');
 
   // Delete confirmation
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Set primary confirmation
+  const [setPrimaryConfirmId, setSetPrimaryConfirmId] = useState<number | null>(null);
+  const [isSettingPrimary, setIsSettingPrimary] = useState(false);
 
   useEffect(() => {
     fetchPayouts();
@@ -72,10 +76,10 @@ export default function PayoutDetailsPage() {
     setSuccessMessage('');
 
     try {
-      let details: WireTransferDetails | PaypalDetails | WiseDetails;
+      let fields: WireTransferFields | PaypalFields | WiseFields;
 
       if (selectedMethod === 'wire') {
-        details = {
+        fields = {
           first_name: firstName,
           last_name: lastName,
           business_name: businessName || undefined,
@@ -87,12 +91,12 @@ export default function PayoutDetailsPage() {
           swift_code: swiftCode,
         };
       } else {
-        details = { email };
+        fields = { email };
       }
 
       await PayoutService.createPayout({
-        method: selectedMethod,
-        details,
+        type: selectedMethod,
+        fields,
       });
 
       setSuccessMessage('Payout option created successfully!');
@@ -106,17 +110,35 @@ export default function PayoutDetailsPage() {
     }
   };
 
-  const handleSetDefault = async (id: string) => {
+  const openSetPrimaryModal = (id: number) => {
+    setSetPrimaryConfirmId(id);
+  };
+
+  const closeSetPrimaryModal = () => {
+    setSetPrimaryConfirmId(null);
+  };
+
+  const handleSetPrimaryConfirm = async () => {
+    if (!setPrimaryConfirmId) return;
+
+    setIsSettingPrimary(true);
+    setError('');
+
     try {
-      setError('');
-      await PayoutService.setDefaultPayout(id);
+      await PayoutService.setPrimaryPayout(setPrimaryConfirmId);
+      setSuccessMessage('Primary payout method updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      closeSetPrimaryModal();
       fetchPayouts();
     } catch (err: any) {
       setError(err.message);
+      closeSetPrimaryModal();
+    } finally {
+      setIsSettingPrimary(false);
     }
   };
 
-  const openDeleteModal = (id: string) => {
+  const openDeleteModal = (id: number) => {
     setDeleteConfirmId(id);
     setDeleteConfirmation('');
   };
@@ -147,13 +169,13 @@ export default function PayoutDetailsPage() {
   };
 
   const getPayoutLabel = (payout: PayoutOption): string => {
-    if (payout.method === 'paypal') {
-      return `PayPal - ${(payout.details as PaypalDetails).email}`;
-    } else if (payout.method === 'wise') {
-      return `Wise - ${(payout.details as WiseDetails).email}`;
+    if (payout.type === 'paypal') {
+      return `PayPal - ${(payout.fields as PaypalFields).email}`;
+    } else if (payout.type === 'wise') {
+      return `Wise - ${(payout.fields as WiseFields).email}`;
     } else {
-      const details = payout.details as WireTransferDetails;
-      return `Wire Transfer - ${details.first_name} ${details.last_name}`;
+      const fields = payout.fields as WireTransferFields;
+      return `Wire Transfer - ${fields.first_name} ${fields.last_name}`;
     }
   };
 
@@ -199,29 +221,30 @@ export default function PayoutDetailsPage() {
                 key={payout.id}
                 className="flex items-center justify-between p-4 border border-zinc-200 rounded-lg hover:border-pink-300 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="default_payout"
-                    checked={payout.is_default}
-                    onChange={() => handleSetDefault(payout.id)}
-                    className="w-4 h-4 text-pink-500 focus:ring-pink-500"
-                  />
-                  <div>
-                    <p className="font-medium text-zinc-900">{getPayoutLabel(payout)}</p>
-                    {payout.is_default && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200 mt-1">
-                        Default
-                      </span>
-                    )}
-                  </div>
+                <div>
+                  <p className="font-medium text-zinc-900">{getPayoutLabel(payout)}</p>
+                  {payout.is_primary && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200 mt-1">
+                      Primary
+                    </span>
+                  )}
                 </div>
-                <button
-                  onClick={() => openDeleteModal(payout.id)}
-                  className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 border border-red-300 rounded-lg transition-colors"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-2">
+                  {!payout.is_primary && (
+                    <button
+                      onClick={() => openSetPrimaryModal(payout.id)}
+                      className="px-3 py-1.5 text-sm text-pink-600 hover:bg-pink-50 border border-pink-300 rounded-lg transition-colors"
+                    >
+                      Make Primary
+                    </button>
+                  )}
+                  <button
+                    onClick={() => openDeleteModal(payout.id)}
+                    className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 border border-red-300 rounded-lg transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -410,6 +433,34 @@ export default function PayoutDetailsPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Set Primary Confirmation Modal */}
+      {setPrimaryConfirmId && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-zinc-900 mb-2">Set Primary Payout Method</h2>
+            <p className="text-zinc-600 mb-6">
+              Are you sure you want to set this as your primary payout method? This will be used for all future payouts.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closeSetPrimaryModal}
+                className="px-4 py-2 border border-zinc-300 rounded-lg text-zinc-700 hover:bg-zinc-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSetPrimaryConfirm}
+                disabled={isSettingPrimary}
+                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed"
+              >
+                {isSettingPrimary ? 'Setting...' : 'Set as Primary'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

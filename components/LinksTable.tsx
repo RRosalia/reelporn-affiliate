@@ -8,13 +8,15 @@ interface LinksTableProps {
   isLoading?: boolean;
   showViewAll?: boolean;
   onViewAll?: () => void;
+  onCreateLink?: () => void;
 }
 
 export default function LinksTable({
   links,
   isLoading = false,
   showViewAll = false,
-  onViewAll
+  onViewAll,
+  onCreateLink
 }: LinksTableProps) {
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
@@ -48,16 +50,27 @@ export default function LinksTable({
 
   if (links.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="text-center py-16">
+        <div className="flex justify-center mb-6">
+          <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center">
+            <svg className="w-10 h-10 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
         </div>
-        <p className="font-semibold text-zinc-900 mb-1">No links yet</p>
-        <p className="text-sm text-zinc-500">Create your first affiliate link to get started</p>
+        <h3 className="text-xl font-semibold text-zinc-900 mb-2">No links yet</h3>
+        <p className="text-sm text-zinc-500 mb-6">Create your first affiliate link to start earning commissions</p>
+        {onCreateLink && (
+          <button
+            onClick={onCreateLink}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-pink-500/30"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Your First Link
+          </button>
+        )}
       </div>
     );
   }

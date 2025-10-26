@@ -18,7 +18,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  setUserData: (token: string, user: User) => void;
   register: (firstName: string, lastName: string, email: string, country: string | number) => Promise<void>;
   logout: () => void;
   fetchProfile: () => Promise<void>;
@@ -43,22 +44,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const setUserData = (token: string, user: User) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    reinitializeEchoWithAuth(token);
+  };
+
+  const login = async (email: string, password: string) => {
     try {
       const response = await axiosInstance.post('/login', {
-        username,
+        email,
         password,
       });
 
       const { token, user } = response.data.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      setUser(user);
-
-      // Initialize Echo with auth token
-      reinitializeEchoWithAuth(token);
+      setUserData(token, user);
 
       // Don't redirect here - let the login page handle it after checking for 2FA
       // router.push('/dashboard');
@@ -118,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, setUserData, register, logout, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

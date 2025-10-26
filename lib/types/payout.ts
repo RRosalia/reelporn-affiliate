@@ -1,6 +1,6 @@
 export type PaymentMethod = 'paypal' | 'wise' | 'wire';
 
-export interface WireTransferDetails {
+export interface WireTransferFields {
   first_name: string;
   last_name: string;
   business_name?: string;
@@ -12,39 +12,37 @@ export interface WireTransferDetails {
   swift_code: string;
 }
 
-export interface PaypalDetails {
+export interface PaypalFields {
   email: string;
 }
 
-export interface WiseDetails {
+export interface WiseFields {
   email: string;
 }
+
+export type PayoutFields = WireTransferFields | PaypalFields | WiseFields;
 
 export interface PayoutOption {
-  id: string;
-  method: PaymentMethod;
-  is_default: boolean;
-  details: WireTransferDetails | PaypalDetails | WiseDetails;
+  id: number;
+  affiliate_user_id: number;
+  type: PaymentMethod;
+  fields: PayoutFields;
+  is_primary: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreatePayoutRequest {
-  method: PaymentMethod;
-  details: WireTransferDetails | PaypalDetails | WiseDetails;
-}
-
-export interface UpdatePayoutRequest {
-  method?: PaymentMethod;
-  details?: WireTransferDetails | PaypalDetails | WiseDetails;
+  type: PaymentMethod;
+  fields: PayoutFields;
+  is_primary?: boolean;
 }
 
 export interface PayoutResponse {
-  status: string;
+  message: string;
   data: PayoutOption;
 }
 
 export interface PayoutListResponse {
-  status: string;
   data: PayoutOption[];
 }

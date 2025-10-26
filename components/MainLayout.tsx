@@ -8,7 +8,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
 
   // Routes that should show the sidebar
-  const authenticatedRoutes = ['/dashboard', '/settings', '/referrals', '/payouts', '/reports', '/linkbuilder'];
+  const authenticatedRoutes = ['/dashboard', '/settings', '/traffic', '/payouts', '/reports', '/linkbuilder'];
   const shouldShowSidebar = authenticatedRoutes.some(route => pathname.startsWith(route));
 
   if (shouldShowSidebar) {

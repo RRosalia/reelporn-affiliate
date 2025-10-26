@@ -63,7 +63,10 @@ export default function OnboardingTrial({ onComplete }: OnboardingTrialProps) {
   const currentStepData = steps[currentStep];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 animate-in fade-in duration-200">
         {/* Progress Bar */}
         <div className="mb-8">

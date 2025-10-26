@@ -5,14 +5,18 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import OnboardingTrial from '@/components/OnboardingTrial';
 import LinksTable from '@/components/LinksTable';
+import DashboardStats from '@/components/DashboardStats';
+import RecentLeads from '@/components/RecentLeads';
 import { linkBuilderService } from '@/lib/services/LinkBuilderService';
 import { AffiliateLink } from '@/lib/types/link';
+import { profileService } from '@/lib/services/ProfileService';
 
 function DashboardContent() {
   const { user, fetchProfile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [affiliateId, setAffiliateId] = useState<number | null>(null);
 
   // Links state
   const [recentLinks, setRecentLinks] = useState<AffiliateLink[]>([]);
@@ -22,10 +26,20 @@ function DashboardContent() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user profile on mount
+  // Fetch user profile and affiliate profile on mount
   useEffect(() => {
     fetchProfile();
+    loadAffiliateProfile();
   }, []);
+
+  const loadAffiliateProfile = async () => {
+    try {
+      const profile = await profileService.getProfile();
+      setAffiliateId(profile.id);
+    } catch (error) {
+      console.error('Failed to load affiliate profile:', error);
+    }
+  };
 
   // Fetch recent links on mount
   useEffect(() => {
@@ -107,66 +121,20 @@ function DashboardContent() {
       </div>
 
       {/* Stats Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-6">
-          You and reelporn.ai's Affiliate Program
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Total Earnings */}
-          <div>
-            <div className="text-sm text-zinc-600 mb-2">Total earnings</div>
-            <div className="text-3xl font-bold text-zinc-900">$0.00</div>
-          </div>
-
-          {/* Total Clicks */}
-          <div>
-            <div className="flex items-center gap-2 text-sm text-zinc-600 mb-2">
-              <span>Total clicks</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-              </svg>
-            </div>
-            <div className="text-3xl font-bold text-zinc-900">0</div>
-            <div className="text-xs text-zinc-500 mt-1">All clicks from your links</div>
-          </div>
-
-          {/* Total Leads */}
-          <div>
-            <div className="flex items-center gap-2 text-sm text-zinc-600 mb-2">
-              <span>Total leads</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div className="text-3xl font-bold text-zinc-900">0</div>
-            <div className="text-xs text-zinc-500 mt-1">All leads from your links</div>
-          </div>
-
-          {/* Total Referred Customers */}
-          <div>
-            <div className="flex items-center gap-2 text-sm text-zinc-600 mb-2">
-              <span>Total referred customers</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <div className="text-3xl font-bold text-zinc-900">0</div>
-            <div className="text-xs text-zinc-500 mt-1">All customers from your links</div>
-          </div>
-        </div>
-      </div>
+      <DashboardStats affiliateId={affiliateId} />
 
       {/* Links Section */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-zinc-900">Recent Links</h2>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            Create link
-          </button>
+          {!isLoadingLinks && recentLinks.length > 0 && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Create link
+            </button>
+          )}
         </div>
 
         <LinksTable
@@ -174,30 +142,12 @@ function DashboardContent() {
           isLoading={isLoadingLinks}
           showViewAll={recentLinks.length === 5}
           onViewAll={() => router.push('/linkbuilder')}
+          onCreateLink={() => setShowCreateModal(true)}
         />
       </div>
 
-      {/* Recent Referrals */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-zinc-900">Recent referrals</h2>
-          <button className="text-pink-500 hover:text-pink-600 text-sm font-medium">
-            View all →
-          </button>
-        </div>
-
-        <div className="text-center py-12">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-            </div>
-          </div>
-          <p className="font-semibold text-zinc-900 mb-1">No data</p>
-          <p className="text-sm text-zinc-500">You don't have any referrals yet.</p>
-        </div>
-      </div>
+      {/* Recent Leads */}
+      <RecentLeads affiliateId={affiliateId} />
 
       {/* Onboarding Trial */}
       {showOnboarding && <OnboardingTrial onComplete={handleOnboardingComplete} />}

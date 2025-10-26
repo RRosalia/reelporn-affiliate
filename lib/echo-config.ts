@@ -80,10 +80,36 @@ export function initializeEcho(authToken?: string | null) {
   // Add authorization headers if we have a token
   const echoConfig = authToken ? {
     ...baseConfig,
-    auth: {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+    authorizer: (channel: any) => {
+      return {
+        authorize: (socketId: string, callback: Function) => {
+          fetch(authEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({
+              socket_id: socketId,
+              channel_name: channel.name,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`Auth failed: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then((data) => {
+              callback(null, data);
+            })
+            .catch((error) => {
+              console.error('[Echo] Authorization error:', error);
+              callback(error, null);
+            });
+        },
+      };
     },
   } : baseConfig;
 
