@@ -26,3 +26,6 @@ Sentry.init({
 
   environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || 'production',
 });
+
+// Export the onRouterTransitionStart hook to instrument client-side navigations
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

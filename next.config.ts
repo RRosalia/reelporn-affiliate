@@ -38,8 +38,14 @@ export default withSentryConfig(nextConfig, {
   // Source maps configuration
   sourcemaps: {
     disable: false,
-    assets: ["**/*.js", "**/*.js.map"],
-    ignore: ["**/node_modules/**"],
+    assets: [".next/**/*.js", ".next/**/*.js.map"],
+    ignore: [
+      "**/node_modules/**",
+      "**/_buildManifest.js",
+      "**/_ssgManifest.js",
+      "**/middleware-*.js",
+      "**/webpack-*.js",
+    ],
     deleteSourcemapsAfterUpload: true,
   },
 
