@@ -26,8 +26,8 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+  // Suppress verbose logging from Sentry source map uploads
+  silent: true,
 
   // Reduce verbosity of source map uploads
   telemetry: false,
