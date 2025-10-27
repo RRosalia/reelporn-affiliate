@@ -167,11 +167,13 @@ function RegisterForm() {
                 name="country"
                 value={country}
                 onChange={(value) => setCountry(value)}
-                options={countries.map((c) => ({
-                  value: c.id,
-                  label: c.name,
-                  emoji: c.flag_emoji.img,
-                }))}
+                options={countries
+                  .filter((c) => c.name && c.flag_emoji?.img)
+                  .map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    emoji: c.flag_emoji.img,
+                  }))}
                 placeholder={loadingCountries ? 'Loading countries...' : 'Select a country'}
                 disabled={loadingCountries}
                 required

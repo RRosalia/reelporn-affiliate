@@ -40,7 +40,7 @@ export default function SearchableSelect({
 
   // Filter options based on search query
   const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase())
+    option.label?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Close dropdown when clicking outside
