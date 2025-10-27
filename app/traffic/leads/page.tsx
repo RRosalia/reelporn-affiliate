@@ -272,7 +272,7 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeColor(lead.status)}`}>
-                        {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                        {lead.status ? lead.status.charAt(0).toUpperCase() + lead.status.slice(1) : '—'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-900">

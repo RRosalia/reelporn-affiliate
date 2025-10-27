@@ -49,8 +49,8 @@ export class CountryService {
       const lowerQuery = query.toLowerCase();
       return countries.filter(
         (country) =>
-          country.name.toLowerCase().includes(lowerQuery) ||
-          country.official_name.toLowerCase().includes(lowerQuery)
+          country.name?.toLowerCase().includes(lowerQuery) ||
+          country.official_name?.toLowerCase().includes(lowerQuery)
       );
     } catch (error) {
       console.error('Failed to search countries:', error);

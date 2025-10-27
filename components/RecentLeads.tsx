@@ -165,7 +165,7 @@ export default function RecentLeads({ affiliateId }: RecentLeadsProps) {
                   </td>
                   <td className="py-3 px-4">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getStatusBadgeColor(lead.status)}`}>
-                      {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                      {lead.status ? lead.status.charAt(0).toUpperCase() + lead.status.slice(1) : '—'}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">

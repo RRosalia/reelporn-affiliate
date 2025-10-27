@@ -356,7 +356,7 @@ export default function PayoutsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPayoutStatusBadge(payout.status)}`}>
-                            {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
+                            {payout.status ? payout.status.charAt(0).toUpperCase() + payout.status.slice(1) : '—'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-zinc-900">
@@ -631,7 +631,7 @@ export default function PayoutsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCommissionStatusBadge(commission.status)}`}>
-                            {commission.status.charAt(0).toUpperCase() + commission.status.slice(1)}
+                            {commission.status ? commission.status.charAt(0).toUpperCase() + commission.status.slice(1) : '—'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-zinc-900">

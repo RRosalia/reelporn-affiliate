@@ -115,9 +115,9 @@ export default function SettingsPage() {
   };
 
   const filteredCountries = countries.filter(country =>
-    country.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-    country.official_name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-    country.iso_alpha_2.toLowerCase().includes(countrySearch.toLowerCase())
+    country.name?.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    country.official_name?.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    country.iso_alpha_2?.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
   return (
